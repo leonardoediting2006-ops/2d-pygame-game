@@ -1,0 +1,13 @@
+[workspace]
+authors = ["leonardoediting2006-ops <leonardo.editing2006@gmail.com>"]
+channels = ["conda-forge"]
+name = "2d pygame game"
+platforms = ["win-64"]
+version = "0.1.0"
+
+[tasks]
+start = "python main.py"
+
+[dependencies]
+python = "3.12.*"
+pygame = ">=2.6.1,<3"
