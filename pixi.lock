@@ -57,6 +57,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/win-64/pygame-2.6.1-py312hea106ac_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/python-3.12.13-h0159041_0_cpython.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/rav1e-0.8.1-h007690e_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/ruff-0.15.15-h45713df_1.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/sdl2-2.32.56-h5112557_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/sdl2_image-2.8.12-h68aa3b2_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/sdl2_mixer-2.6.3-hcd0ef4b_2.conda
@@ -669,6 +670,19 @@ packages:
   license_family: BSD
   size: 4386341
   timestamp: 1772541112444
+- conda: https://conda.anaconda.org/conda-forge/win-64/ruff-0.15.15-h45713df_1.conda
+  noarch: python
+  sha256: 80deecc5ffef6480b8bfb22419ed0c5c0136e1430a738f45aa2132949df4a456
+  md5: 94712822ab66f9ede829ce2dd5adcc2d
+  depends:
+  - python
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  - ucrt >=10.0.20348.0
+  license: MIT
+  license_family: MIT
+  size: 9688961
+  timestamp: 1780055714372
 - conda: https://conda.anaconda.org/conda-forge/win-64/sdl2-2.32.56-h5112557_0.conda
   sha256: d17da21386bdbf32bce5daba5142916feb95eed63ef92b285808c765705bbfd2
   md5: 4cffbfebb6614a1bff3fc666527c25c7
