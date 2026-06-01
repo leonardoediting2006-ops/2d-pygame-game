@@ -76,9 +76,19 @@ print("Window created")
 
 running = True
 while running:
+
+
+
+    mouse_x, mouse_y = pygame.mouse.get_pos()
+
+    world_mouse_x = mouse_x + camera_x
+    world_mouse_y = mouse_y + camera_y
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+
+        
         if event.type == pygame.MOUSEBUTTONDOWN:
             mouse_x, mouse_y = pygame.mouse.get_pos()
 
@@ -91,8 +101,14 @@ while running:
                     tile_rect, tile_type = tile
 
                     if tile_rect.collidepoint(world_mouse_x, world_mouse_y):
-                        tiles.remove(tile)
-                        break
+                        distance_x = tile_rect.centerx - player.centerx
+                        distance_y = tile_rect.centery - player.centery
+
+                        distance = (distance_x ** 2 + distance_y ** 2) ** 0.5
+
+                        if distance < 200:
+                            tiles.remove(tile)
+                            break
 
             elif event.button == 3:
 
@@ -106,11 +122,19 @@ while running:
                                 break
                         
                         if not tile_exists:
-                            new_tile_rect = pygame.Rect(
-                                grid_tile.x, grid_tile.y, TILE_SIZE, TILE_SIZE
-                            )
-                            tiles.append((new_tile_rect, GRASS))
-                        break
+                            if grid_tile.collidepoint(world_mouse_x, world_mouse_y):
+                                distance_x = grid_tile.centerx - player.centerx
+                                distance_y = grid_tile.centery - player.centery
+
+                                distance = (distance_x ** 2 + distance_y ** 2) ** 0.5
+
+                                if distance < 400:
+
+                                    new_tile_rect = pygame.Rect(
+                                        grid_tile.x, grid_tile.y, TILE_SIZE, TILE_SIZE
+                                    )
+                                    tiles.append((new_tile_rect, GRASS))
+                                break
 
 
     keys = pygame.key.get_pressed()
@@ -195,7 +219,13 @@ while running:
                 tile_rect.height,
             ),
         )  # Draw tiles relative to the camera
-    
+
+    for tile_rect, tile_type in tiles:
+        
+        if tile_rect.collidepoint(world_mouse_x, world_mouse_y):
+            hover_rect = pygame.Rect(tile_rect.x - camera_x, tile_rect.y - camera_y, tile_rect.width, tile_rect.height)
+            pygame.draw.rect(screen, (255, 255, 255), hover_rect, 2)
+
     pygame.display.flip()
     clock.tick(FPS)
 
