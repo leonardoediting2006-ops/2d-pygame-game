@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Valle delle Lucciole</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #140d10; }
+  canvas { display: block; width: 100vw; height: 100vh; outline: none; image-rendering: pixelated; }
+</style>
+</head>
+<body>
+<canvas id="glcanvas" tabindex="1"></canvas>
+<script src="mq_js_bundle.js"></script>
+<script>
+  // Caricamento senza compileStreaming: funziona anche se il server non invia il MIME application/wasm
+  WebAssembly.compileStreaming = undefined;
+  load("valle-lucciole.wasm");
+  document.getElementById("glcanvas").focus();
+</script>
+</body>
+</html>

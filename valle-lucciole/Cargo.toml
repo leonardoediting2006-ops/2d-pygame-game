@@ -1,0 +1,20 @@
+[package]
+name = "valle-lucciole"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+macroquad = { version = "0.4", default-features = false }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+
+# Build ottimizzato anche in debug per le dipendenze (generazione arte più veloce)
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.dev]
+opt-level = 1
