@@ -3,6 +3,7 @@
 use crate::canvas::*;
 use crate::items::*;
 use crate::buildings::*;
+use crate::decor::*;
 use crate::sprites::*;
 use crate::util::*;
 use macroquad::prelude::*;
@@ -16,6 +17,24 @@ pub fn all_canvases() -> Vec<(String, Canvas)> {
         push(format!("albero_pino_{i}"), pine(i));
         push(format!("albero_ciliegio_{i}"), cherry(i));
     }
+    for i in 0..3 {
+        push(format!("albero_acero_{i}"), leafy(i, &MAPLE, None, 500));
+        push(format!("albero_melo_{i}"), leafy(i, &LEAF, Some([hex(0xd8302a), hex(0xff8a70)]), 600));
+        push(format!("siepe_{i}"), hedge(i));
+        push(format!("erba_alta_{i}"), tallgrass(i, 0));
+    }
+    for i in 0..6 {
+        push(format!("aiuola_{i}"), flowerbed(i));
+    }
+    push("botte".into(), keg(1));
+    push("cassetta".into(), crate_box(0));
+    push("balla_fieno".into(), haybale(0));
+    push("braciere".into(), brazier());
+    push("fiamma_0".into(), flame(0));
+    push("pollaio".into(), coop());
+    push("funghi_0".into(), mushrooms(0));
+    push("funghi_1".into(), mushrooms(1));
+    push("cartello".into(), sign());
     push("ceppo".into(), stump());
     for i in 0..3 {
         push(format!("sasso_{i}"), rock_small(i));
@@ -199,6 +218,19 @@ pub struct Art {
     pub scarecrow: Texture2D,
     pub lamp: Texture2D,
     pub fountain: Texture2D,
+    pub maple: Vec<Texture2D>,
+    pub apple: Vec<Texture2D>,
+    pub hedge: Vec<Texture2D>,
+    pub keg: Vec<Texture2D>,
+    pub crate_box: Vec<Texture2D>,
+    pub hay: Vec<Texture2D>,
+    pub brazier: Texture2D,
+    pub flame: Vec<Texture2D>,
+    pub coop: Texture2D,
+    pub flowerbed: Vec<Texture2D>,
+    pub mushroom: Vec<Texture2D>,
+    pub tallgrass: Vec<[Texture2D; 2]>,
+    pub sign: Texture2D,
     pub bench: Texture2D,
     pub planter: Vec<Texture2D>,
     pub tilled: Vec<Texture2D>,
@@ -258,6 +290,19 @@ impl Art {
             scarecrow: t(scarecrow()),
             lamp: t(lamp()),
             fountain: t(fountain()),
+            maple: (0..3).map(|i| t(leafy(i, &MAPLE, None, 500))).collect(),
+            apple: (0..3).map(|i| t(leafy(i, &LEAF, Some([hex(0xd8302a), hex(0xff8a70)]), 600))).collect(),
+            hedge: (0..3).map(|i| t(hedge(i))).collect(),
+            keg: (0..2).map(|i| t(keg(i))).collect(),
+            crate_box: (0..2).map(|i| t(crate_box(i))).collect(),
+            hay: (0..3).map(|i| t(haybale(i))).collect(),
+            brazier: t(brazier()),
+            flame: (0..4).map(|i| t(flame(i))).collect(),
+            coop: t(coop()),
+            flowerbed: (0..6).map(|i| t(flowerbed(i))).collect(),
+            mushroom: (0..2).map(|i| t(mushrooms(i))).collect(),
+            tallgrass: (0..3).map(|i| [t(tallgrass(i, 0)), t(tallgrass(i, 1))]).collect(),
+            sign: t(sign()),
             bench: t(bench()),
             planter: (0..3).map(|i| t(planter(i))).collect(),
             tilled: (0..16u8).map(|m| t(tilled(m, false))).collect(),

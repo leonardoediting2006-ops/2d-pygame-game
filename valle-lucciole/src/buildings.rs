@@ -24,7 +24,7 @@ const BRASS: [Rgba; 2] = [hex(0xb08420), hex(0xf2c440)];
 // ------------------------------------------------------------------ pieces
 
 /// Front-facing roof with rows of rounded shingles (style 0) or flat slates (style 1).
-fn roof(c: &mut Canvas, y0: i32, y1: i32, slope: f32, pal: &[Rgba; 5], style: u8, seed: u32) {
+pub(crate) fn roof(c: &mut Canvas, y0: i32, y1: i32, slope: f32, pal: &[Rgba; 5], style: u8, seed: u32) {
     let w = c.w;
     let (rh, sw) = if style == 0 { (5, 6) } else { (4, 7) };
     let rows = (y1 - y0 - 3) / rh;
@@ -199,7 +199,7 @@ fn diagonal_beam(c: &mut Canvas, x0: i32, y0: i32, x1: i32, y1: i32) {
 }
 
 /// Foundation of individual stones with highlights, mortar and moss.
-fn stones(c: &mut Canvas, x0: i32, x1: i32, y0: i32, y1: i32, seed: u32) {
+pub(crate) fn stones(c: &mut Canvas, x0: i32, x1: i32, y0: i32, y1: i32, seed: u32) {
     let mut r = Rng::new(seed as u64);
     let mut y = y0;
     let mut row = 0;
@@ -468,7 +468,7 @@ fn log_pile(c: &mut Canvas, x0: i32, y0: i32, cols: i32, rows: i32) {
     }
 }
 
-fn barrel(c: &mut Canvas, x: i32, y: i32) {
+pub(crate) fn barrel(c: &mut Canvas, x: i32, y: i32) {
     for yy in y + 2..y + 13 {
         let bulge = if (yy - y - 7).abs() < 3 { 1 } else { 0 };
         for xx in x - bulge..x + 10 + bulge {

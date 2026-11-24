@@ -27,6 +27,16 @@ Il primo avvio compila tutto (circa un minuto). Poi parte in pochi secondi.
 | 1-0, rotella, Q / Tab | Cambia oggetto |
 | H | Mostra i comandi |
 
+## La mappa
+
+- **La fattoria**: casa con patio in pietra, botti e cassette, pozzo, cassa delle spedizioni,
+  pollaio con il recinto delle galline, orto recintato con bracieri all'ingresso e aiuole fiorite.
+- **Lo stagno**: bordo di pietre, acqua turchese, ninfee, pontile in legno e una panchina.
+- **Il frutteto** di meli e il **campo selvatico** da ripulire (erbacce, sassi, rami, erba alta).
+- **Il prato a sud** con un laghetto naturale, canne, funghi e aceri autunnali.
+- **Il paese** oltre il ponte, con la piazza, la fontana e la bancarella di Mira.
+- Siepi fiorite e alberi fitti chiudono i bordi della mappa.
+
 ## Come si gioca
 
 - **Zappa** il terreno, **pianta** i semi, **annaffia** ogni giorno: le colture crescono solo nei giorni bagnati.
@@ -49,6 +59,7 @@ Il primo avvio compila tutto (circa un minuto). Poi parte in pochi secondi.
 | File | Contenuto |
 |---|---|
 | `src/sprites.rs` | Sprite dipinti pixel per pixel (luce dall'alto a sinistra, contorni selettivi) |
+| `src/decor.rs` | Siepi, aceri, meli, staccionate, botti, fieno, bracieri, pollaio, aiuole, funghi, erba alta |
 | `src/buildings.rs` | Case, pozzo e cassa costruiti a pezzi: tetti, assi, pietre, finestre, porte, dettagli |
 | `src/world.rs` | Mappa, oggetti e "cottura" del terreno in una texture con bordi organici |
 | `src/render.rs` | Rendering 2.5D: ordinamento per profondità, ombre, trasparenza dietro alberi e tetti, luci notturne |

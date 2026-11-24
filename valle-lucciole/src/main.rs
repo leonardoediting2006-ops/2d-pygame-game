@@ -4,6 +4,7 @@
 mod art;
 mod buildings;
 mod canvas;
+mod decor;
 mod font;
 mod game;
 mod items;

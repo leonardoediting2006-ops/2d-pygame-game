@@ -56,11 +56,26 @@ impl Game {
             Kind::Fountain => (&a.fountain, vec2(0.0, -14.0)),
             Kind::Bench => (&a.bench, vec2(0.0, -8.0)),
             Kind::Planter => (&a.planter[v % 3], vec2(0.0, -8.0)),
+            Kind::Maple => (&a.maple[v % 3], vec2(-16.0, -46.0)),
+            Kind::Apple => (&a.apple[v % 3], vec2(-16.0, -46.0)),
+            Kind::Hedge => (&a.hedge[v % 3], vec2(0.0, -22.0)),
+            Kind::Keg => (&a.keg[v % 2], vec2(0.0, -8.0)),
+            Kind::Crate => (&a.crate_box[v % 2], vec2(0.0, -2.0)),
+            Kind::HayBale => (&a.hay[v % 3], vec2(0.0, 0.0)),
+            Kind::Brazier => (&a.brazier, vec2(0.0, -8.0)),
+            Kind::Coop => (&a.coop, vec2(0.0, -24.0)),
+            Kind::FlowerBed => (&a.flowerbed[v % 6], vec2(0.0, -8.0)),
+            Kind::Mushroom => (&a.mushroom[v % 2], vec2(0.0, 0.0)),
+            Kind::TallGrass => {
+                let f = ((self.t * 1.3 + o.x as f32 * 0.37 + o.y as f32 * 0.21).sin() > 0.3) as usize;
+                (&a.tallgrass[v % 3][f], vec2(0.0, -4.0))
+            }
+            Kind::Sign => (&a.sign, vec2(0.0, -8.0)),
         }
     }
 
     fn is_tall(k: Kind) -> bool {
-        matches!(k, Kind::Oak | Kind::Pine | Kind::Cherry | Kind::House | Kind::Cottage | Kind::Stall | Kind::Well | Kind::Lamp | Kind::Fountain)
+        matches!(k, Kind::Oak | Kind::Pine | Kind::Cherry | Kind::House | Kind::Cottage | Kind::Stall | Kind::Well | Kind::Lamp | Kind::Fountain | Kind::Maple | Kind::Apple | Kind::Coop | Kind::Hedge)
     }
 
     pub fn draw(&self) {
@@ -239,6 +254,18 @@ impl Game {
                             shadow(&a.shadow_xl, bx + 10.0, by + 13.0);
                             shadow(&a.contact, bx + 8.0, by + 15.0);
                         }
+                        Kind::Hedge => {
+                            stretch(&a.shadow_xl, bx + 17.0, by + 14.0, 40.0, 12.0);
+                            stretch(&a.contact, bx + 16.0, by + 15.5, 30.0, 5.0);
+                        }
+                        Kind::Coop => {
+                            stretch(&a.shadow_xl, bx + 34.0, by + 31.0, 72.0, 12.0);
+                            stretch(&a.contact, bx + 32.0, by + 32.0, 62.0, 4.0);
+                        }
+                        Kind::Keg | Kind::Crate | Kind::HayBale | Kind::Brazier | Kind::Sign | Kind::FlowerBed => {
+                            shadow(&a.shadow_m, bx + 9.0, by + 14.5);
+                            stretch(&a.contact, bx + 8.0, by + 15.5, 13.0, 4.0);
+                        }
                         Kind::Stump | Kind::Bush => {
                             shadow(&a.shadow_m, bx + 8.0, by + 14.0);
                             shadow(&a.contact, bx + 8.0, by + 15.0);
@@ -311,6 +338,11 @@ impl Game {
                     self.draw_decals(o, true);
                     tex(t, p.x, p.y, col);
                     self.draw_decals(o, false);
+                    if o.kind == Kind::Brazier {
+                        let f = ((self.t * 10.0 + o.x as f32) as usize) % 4;
+                        let fl = &self.art.flame[f];
+                        tex(fl, p.x + 3.0, p.y - 2.0, WHITE);
+                    }
                 }
                 Dr::Crop(x, y) => {
                     let c = w.crops[idx(*x, *y)].unwrap();
@@ -543,6 +575,11 @@ impl Game {
             (Kind::Rock, false) => &[(1.0, 16.0), (15.0, 16.0)],
             (Kind::Boulder, false) => &[(1.0, 32.0), (31.0, 32.0), (16.0, 33.0)],
             (Kind::Bush, false) => &[(2.0, 16.0), (14.0, 16.0)],
+            (Kind::Maple | Kind::Apple, false) => &[(-4.0, 16.0), (20.0, 16.0), (7.0, 17.0)],
+            (Kind::Hedge, false) => &[(0.0, 16.0), (12.0, 17.0), (24.0, 17.0), (33.0, 16.0)],
+            (Kind::Coop, false) => &[(-2.0, 31.0), (12.0, 33.0), (26.0, 33.0), (56.0, 33.0), (66.0, 31.0)],
+            (Kind::Keg | Kind::Crate | Kind::HayBale | Kind::Sign | Kind::FlowerBed, false) => &[(1.0, 16.0), (15.0, 16.0)],
+            (Kind::Brazier, false) => &[(2.0, 16.0)],
             (Kind::House, false) => &[(-2.0, 46.0), (6.0, 48.0), (18.0, 49.0), (30.0, 48.0), (80.0, 48.0), (92.0, 49.0), (99.0, 46.0)],
             (Kind::House, true) => &[(-4.0, 30.0), (100.0, 30.0)],
             (Kind::Cottage, false) => &[(2.0, 34.0), (12.0, 35.0), (20.0, 46.0), (60.0, 46.0), (68.0, 35.0), (79.0, 34.0)],
@@ -655,6 +692,9 @@ impl Game {
                 for &(x, y) in &info.lanterns {
                     v.push((top + vec2(x as f32, y as f32), 34.0, Color::new(1.0, 0.84, 0.5, 1.0)));
                 }
+            } else if o.kind == Kind::Brazier {
+                let fl = 0.9 + (self.t * 9.0 + o.x as f32).sin() * 0.06 + (self.t * 23.0).sin() * 0.04;
+                v.push((vec2(o.x as f32 * TS + 8.0, o.y as f32 * TS - 4.0), 58.0 * fl, Color::new(1.0, 0.62, 0.3, 1.0)));
             } else if o.kind == Kind::Lamp {
                 v.push((vec2(o.x as f32 * TS + 8.0, o.y as f32 * TS - 15.0), 84.0, Color::new(1.0, 0.85, 0.5, 1.0)));
             }

@@ -293,7 +293,7 @@ impl Game {
         let mut r = Rng::new(77);
         self.chickens.clear();
         for i in 0..4 {
-            let p = vec2((34 + i * 4) as f32 * TS, 22.0 * TS);
+            let p = vec2((53 + i) as f32 * TS + 8.0, (19 + i % 2) as f32 * TS + 8.0);
             self.chickens.push(Chicken { pos: p, target: p, wait: r.rf(0.0, 2.0), right: i % 2 == 0, peck: 0.0, anim: 0.0 });
         }
         self.butterflies.clear();
@@ -734,6 +734,7 @@ impl Game {
             let col = match f.kind {
                 Kind::Cherry => c8(240, 168, 205, 255),
                 Kind::Pine => c8(44, 116, 86, 255),
+                Kind::Maple => c8(232, 140, 44, 255),
                 _ => c8(88, 170, 64, 255),
             };
             self.burst(land, col, 30, 70.0);
@@ -795,8 +796,8 @@ impl Game {
             if ch.wait > 0.0 {
                 ch.wait -= dt;
                 if ch.wait <= 0.0 {
-                    let home = vec2(42.0 * TS, 22.0 * TS);
-                    ch.target = home + vec2(r.rf(-8.0, 8.0) * TS, r.rf(-1.5, 3.5) * TS);
+                    let home = vec2(55.0 * TS, 20.5 * TS);
+                    ch.target = home + vec2(r.rf(-2.6, 2.6) * TS, r.rf(-1.8, 2.2) * TS);
                 }
                 if r.chance(dt * 0.6) {
                     ch.peck = 0.5;
@@ -867,6 +868,24 @@ impl Game {
                     max: 2.6,
                     col: Color::new(g, g, g + 0.03, 0.55),
                     size: 3.0,
+                });
+            }
+        }
+        // sparks from the braziers (only the ones near the camera)
+        let view = Rect::new(self.cam.x - 32.0, self.cam.y - 32.0, self.vw + 64.0, self.vh + 64.0);
+        let braziers: Vec<Vec2> = self.world.objs.iter().filter(|o| o.alive && o.kind == Kind::Brazier).map(|o| vec2(o.x as f32 * TS + 8.0, o.y as f32 * TS + 14.0)).filter(|p| view.contains(*p)).collect();
+        for b in braziers {
+            if self.rng.chance(0.25) {
+                self.parts.push(Particle {
+                    pos: b + vec2(self.rng.rf(-2.0, 2.0), 0.0),
+                    vel: vec2(self.rng.rf(-4.0, 4.0), 0.0),
+                    z: 22.0,
+                    vz: self.rng.rf(10.0, 22.0),
+                    grav: -4.0,
+                    life: 0.0,
+                    max: self.rng.rf(0.6, 1.1),
+                    col: if self.rng.chance(0.5) { Color::new(1.0, 0.75, 0.3, 1.0) } else { Color::new(1.0, 0.45, 0.15, 1.0) },
+                    size: 1.0,
                 });
             }
         }
@@ -1035,6 +1054,22 @@ impl Game {
                     self.toast("Lo spaventapasseri Bruno veglia sui campi.");
                     return;
                 }
+                Kind::Coop => {
+                    self.toast("Il pollaio: le galline ci dormono di notte.");
+                    return;
+                }
+                Kind::Sign => {
+                    self.toast("Fattoria delle Lucciole - a sinistra lo stagno, a destra il paese.");
+                    return;
+                }
+                Kind::Keg => {
+                    self.toast("Una botte di quercia, ancora vuota.");
+                    return;
+                }
+                Kind::Brazier => {
+                    self.toast("Il braciere scoppietta e scalda le mani.");
+                    return;
+                }
                 _ => {}
             }
         }
@@ -1130,12 +1165,13 @@ impl Game {
                 if let Some(i) = obj {
                     let o = self.world.objs[i];
                     match o.kind {
-                        Kind::Oak | Kind::Pine | Kind::Cherry => {
+                        Kind::Oak | Kind::Pine | Kind::Cherry | Kind::Maple | Kind::Apple => {
                             self.world.objs[i].hp -= 1;
                             self.world.objs[i].shake = 0.3;
                             let col = match o.kind {
                                 Kind::Cherry => c8(245, 175, 210, 255),
                                 Kind::Pine => c8(50, 120, 90, 255),
+                                Kind::Maple => c8(232, 140, 44, 255),
                                 _ => c8(90, 170, 66, 255),
                             };
                             self.burst(center - vec2(0.0, 26.0), col, 8, 40.0);
@@ -1205,7 +1241,7 @@ impl Game {
                 for (x, y) in cells {
                     let c = Self::tile_center(x, y);
                     if let Some(i) = self.world.obj_at(x, y) {
-                        if self.world.objs[i].kind == Kind::Weed {
+                        if matches!(self.world.objs[i].kind, Kind::Weed | Kind::TallGrass | Kind::Mushroom) {
                             self.world.remove(i);
                             self.burst(c, c8(90, 170, 66, 255), 10, 40.0);
                             if self.rng.chance(0.7) {
@@ -1349,7 +1385,10 @@ impl Game {
         // nuove erbacce e rametti
         for _ in 0..10 {
             let x = self.rng.range(18, 61);
-            let y = self.rng.range(21, 53);
+            let y = self.rng.range(37, 53);
+            if !matches!(self.world.g(x, y), Ground::Grass | Ground::Dirt) || (45..=59).contains(&x) && y <= 44 {
+                continue;
+            }
             let k = match self.rng.range(0, 6) {
                 0 => Kind::Stick,
                 1 => Kind::Rock,
@@ -1431,6 +1470,18 @@ impl Game {
                 self.time = 16.2 * 60.0;
                 self.player.pos = vec2(42.0 * TS + 8.0, 21.0 * TS + 10.0);
             }
+            "pond" => {
+                self.time = 15.0 * 60.0;
+                self.player.pos = vec2(20.0 * TS + 8.0, 32.0 * TS + 10.0);
+            }
+            "meadow" => {
+                self.time = 9.5 * 60.0;
+                self.player.pos = vec2(44.0 * TS + 8.0, 59.0 * TS + 10.0);
+            }
+            "evening" => {
+                self.time = 20.4 * 60.0;
+                self.player.pos = vec2(42.0 * TS + 8.0, 24.0 * TS + 10.0);
+            }
             "cottage" => {
                 self.time = 11.0 * 60.0;
                 self.player.pos = vec2(86.0 * TS + 8.0, 26.0 * TS + 10.0);
@@ -1459,7 +1510,7 @@ impl Game {
             }
             _ => {}
         }
-        if matches!(what, "shop" | "town" | "forest" | "chop" | "house" | "cottage") {
+        if matches!(what, "shop" | "town" | "forest" | "chop" | "house" | "cottage" | "pond" | "meadow" | "evening") {
             self.cam = vec2(self.player.pos.x - self.vw / 2.0, self.player.pos.y - 14.0 - self.vh / 2.0);
         }
     }
@@ -1537,11 +1588,15 @@ impl Game {
 
     fn peek_save(&self) -> Option<i32> {
         let s = std::fs::read_to_string(SAVE_PATH).ok()?;
+        // saves from the old map layout are not compatible
+        if !s.starts_with("valle-lucciole v2") {
+            return None;
+        }
         s.lines().find_map(|l| l.strip_prefix("day ").and_then(|v| v.parse().ok()))
     }
 
     fn save(&self) {
-        let mut s = String::from("valle-lucciole v1\n");
+        let mut s = String::from("valle-lucciole v2\n");
         s += &format!("day {}\ntime {}\nmoney {}\nenergy {}\nwater {}\nrain {}\nsel {}\n", self.day, self.time, self.money, self.energy, self.water, self.raining as i32, self.sel);
         for (i, sl) in self.inv.iter().enumerate() {
             if let Some((it, n)) = sl {

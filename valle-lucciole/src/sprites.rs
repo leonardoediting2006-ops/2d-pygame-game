@@ -8,7 +8,7 @@ use std::f32::consts::PI;
 // ------------------------------------------------------------------ helper
 
 /// Chioma "a nuvole": cerchi ombreggiati con luce da in alto a sinistra.
-fn blobs(c: &mut Canvas, list: &[(f32, f32, f32)], pal: &[Rgba; 5], seed: u32, wobble: f32, texture: f32) {
+pub(crate) fn blobs(c: &mut Canvas, list: &[(f32, f32, f32)], pal: &[Rgba; 5], seed: u32, wobble: f32, texture: f32) {
     for (i, &(cx, cy, r)) in list.iter().enumerate() {
         let y0 = (cy - r - 3.0) as i32;
         let y1 = (cy + r + 3.0) as i32;
@@ -50,7 +50,7 @@ fn blobs(c: &mut Canvas, list: &[(f32, f32, f32)], pal: &[Rgba; 5], seed: u32, w
 }
 
 /// Foglia a goccia dalla base (x,y) in direzione `ang`.
-fn leaf(c: &mut Canvas, x: f32, y: f32, ang: f32, len: f32, w: f32, pal: &[Rgba; 5]) {
+pub(crate) fn leaf(c: &mut Canvas, x: f32, y: f32, ang: f32, len: f32, w: f32, pal: &[Rgba; 5]) {
     let (s, co) = ang.sin_cos();
     let steps = (len * 3.0) as i32;
     for i in 0..=steps {
@@ -83,7 +83,7 @@ fn leaf(c: &mut Canvas, x: f32, y: f32, ang: f32, len: f32, w: f32, pal: &[Rgba;
     }
 }
 
-fn thick_line(c: &mut Canvas, x0: i32, y0: i32, x1: i32, y1: i32, a: Rgba, b: Rgba) {
+pub(crate) fn thick_line(c: &mut Canvas, x0: i32, y0: i32, x1: i32, y1: i32, a: Rgba, b: Rgba) {
     c.line(x0, y0, x1, y1, a);
     c.line(x0 + 1, y0, x1 + 1, y1, b);
 }
@@ -129,7 +129,7 @@ pub fn cherry(var: u32) -> Canvas {
     c
 }
 
-fn trunk(c: &mut Canvas, cx: i32, y0: i32, y1: i32, w: i32, var: u32) {
+pub(crate) fn trunk(c: &mut Canvas, cx: i32, y0: i32, y1: i32, w: i32, var: u32) {
     let x0 = cx - w / 2;
     for y in y0..=y1 {
         // the trunk flares out towards the roots
@@ -185,7 +185,7 @@ fn trunk(c: &mut Canvas, cx: i32, y0: i32, y1: i32, w: i32, var: u32) {
     }
 }
 
-fn leaf_marks(c: &mut Canvas, pal: &[Rgba; 5], seed: u32) {
+pub(crate) fn leaf_marks(c: &mut Canvas, pal: &[Rgba; 5], seed: u32) {
     let mut r = Rng::new(seed as u64);
     for _ in 0..40 {
         let x = r.range(2, c.w - 2);
@@ -427,41 +427,6 @@ pub fn stall() -> Canvas {
         let cx = k as f32 * 6.0 + 3.0;
         let col = if k % 2 == 0 { ROOF[2] } else { hex(0xd8c8a8) };
         c.ellipse(cx, 16.0, 3.0, 2.5, col);
-    }
-    c.outline();
-    c
-}
-
-pub fn fence_post() -> Canvas {
-    let mut c = Canvas::new(16, 16);
-    for y in 3..15 {
-        for x in 6..10 {
-            c.set(x, y, if x == 6 { WOOD[3] } else if x == 9 { WOOD[1] } else { WOOD[2] });
-        }
-    }
-    c.ellipse(8.0, 3.5, 2.2, 1.4, WOOD[4]);
-    c.set(8, 3, WOOD[3]);
-    c.outline();
-    c
-}
-
-pub fn fence_rail_h() -> Canvas {
-    let mut c = Canvas::new(16, 16);
-    for x in 0..16 {
-        c.set(x, 6, WOOD[3]);
-        c.set(x, 7, WOOD[1]);
-        c.set(x, 10, WOOD[3]);
-        c.set(x, 11, WOOD[1]);
-    }
-    c.outline();
-    c
-}
-
-pub fn fence_rail_v() -> Canvas {
-    let mut c = Canvas::new(16, 16);
-    for y in 0..16 {
-        c.set(7, y, WOOD[3]);
-        c.set(8, y, WOOD[1]);
     }
     c.outline();
     c
