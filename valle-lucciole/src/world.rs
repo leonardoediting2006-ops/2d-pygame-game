@@ -497,7 +497,8 @@ impl World {
 
     // -------------------------------------------------------------- cottura del terreno
 
-    pub fn bake(&self) -> Canvas {
+    /// Returns the baked ground and, for every pixel, which ground type is visible there.
+    pub fn bake(&self) -> (Canvas, Vec<u8>) {
         use Ground::*;
         let pw = W * 16;
         let ph = H * 16;
@@ -834,6 +835,6 @@ impl World {
                 }
             }
         }
-        c
+        (c, tm)
     }
 }

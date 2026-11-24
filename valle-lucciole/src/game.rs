@@ -97,6 +97,8 @@ pub struct Game {
     pub font: Font,
     pub world: World,
     pub ground_tex: Texture2D,
+    /// visible ground type per pixel (to pick grass tufts or pebbles at object bases)
+    pub ground_px: Vec<u8>,
     pub player: Player,
     pub inv: [Option<(Item, i32)>; SLOTS],
     pub sel: usize,
@@ -137,6 +139,8 @@ pub struct Game {
     pub scale: f32,
     pub scene: RenderTarget,
     pub light: RenderTarget,
+    /// silhouettes cast by the sun, composited once so overlaps don't double-darken
+    pub shadows: RenderTarget,
     pub add_mat: Material,
     pub mul_mat: Material,
     pub tip_i: usize,
@@ -198,13 +202,15 @@ impl Game {
         let art = Art::new();
         let font = Font::new();
         let world = World::generate(7);
-        let ground_tex = world.bake().tex();
+        let (ground_canvas, ground_px) = world.bake();
+        let ground_tex = ground_canvas.tex();
         let (vw, vh, scale) = Self::view_size();
         let mut g = Game {
             art,
             font,
             world,
             ground_tex,
+            ground_px,
             player: Player {
                 pos: vec2(41.0 * TS + 8.0, 19.0 * TS + 12.0),
                 dir: 0,
@@ -255,6 +261,7 @@ impl Game {
             scale,
             scene: rt(vw, vh),
             light: rt(vw, vh),
+            shadows: rt(vw, vh),
             add_mat: blend_mat(BlendState::new(Equation::Add, BlendFactor::Value(BlendValue::SourceAlpha), BlendFactor::One)),
             mul_mat: blend_mat(BlendState::new(Equation::Add, BlendFactor::Value(BlendValue::DestinationColor), BlendFactor::Zero)),
             tip_i: 0,
@@ -414,13 +421,18 @@ impl Game {
 
     pub fn ambient(&self) -> Color {
         let h = self.time / 60.0;
-        let keys: [(f32, [f32; 3]); 8] = [
-            (5.0, [0.45, 0.45, 0.7]),
-            (6.0, [0.86, 0.76, 0.82]),
-            (7.5, [1.0, 1.0, 1.0]),
-            (16.5, [1.0, 1.0, 1.0]),
-            (18.5, [1.0, 0.8, 0.62]),
-            (20.0, [0.55, 0.5, 0.74]),
+        // ambient colour through the day: pink dawn, warm morning, neutral noon,
+        // golden afternoon, orange sunset, blue night
+        let keys: [(f32, [f32; 3]); 11] = [
+            (5.0, [0.42, 0.44, 0.72]),
+            (6.0, [0.9, 0.74, 0.8]),
+            (7.3, [1.0, 0.93, 0.86]),
+            (10.0, [1.0, 0.99, 0.96]),
+            (14.5, [1.0, 1.0, 0.97]),
+            (16.8, [1.0, 0.92, 0.78]),
+            (18.2, [1.0, 0.78, 0.6]),
+            (19.2, [0.84, 0.6, 0.62]),
+            (20.3, [0.5, 0.47, 0.74]),
             (21.5, [0.3, 0.32, 0.56]),
             (27.0, [0.24, 0.26, 0.48]),
         ];
@@ -481,6 +493,7 @@ impl Game {
             self.vh = vh;
             self.scene = rt(vw, vh);
             self.light = rt(vw, vh);
+            self.shadows = rt(vw, vh);
         }
         self.scale = sc;
         let m = Vec2::from(mouse_position());
@@ -540,7 +553,9 @@ impl Game {
 
     fn reset_new(&mut self) {
         self.world = World::generate(7);
-        self.ground_tex = self.world.bake().tex();
+        let (gc, gp) = self.world.bake();
+        self.ground_tex = gc.tex();
+        self.ground_px = gp;
         self.new_game_inventory();
         self.money = 300;
         self.energy = MAX_ENERGY;
@@ -838,8 +853,9 @@ impl Game {
         self.smoke_t -= dt;
         if self.smoke_t <= 0.0 {
             self.smoke_t = 0.35;
-            if let Some(h) = self.world.find(Kind::House) {
-                let base = vec2(h.x as f32 * TS + 75.0, (h.y + 2) as f32 * TS - 80.0 - 2.0);
+            if let (Some(h), Some((cx, cy))) = (self.world.find(Kind::House), self.art.house_info.chimney) {
+                let top = vec2(h.x as f32 * TS, (h.y + 2) as f32 * TS - self.art.house_info.base_y as f32);
+                let base = top + vec2(cx as f32, cy as f32 - 1.0);
                 let g = 0.75 + self.rng.f() * 0.15;
                 self.parts.push(Particle {
                     pos: base + vec2(self.rng.rf(-2.0, 2.0), 0.0),
@@ -1408,6 +1424,17 @@ impl Game {
             "help" => self.mode = Mode::Help,
             "toast" => self.toast(TIPS[0]),
             "dusk" => self.time = 18.8 * 60.0,
+            "morning" => self.time = 7.6 * 60.0,
+            "golden" => self.time = 17.7 * 60.0,
+            "noon" => self.time = 12.5 * 60.0,
+            "house" => {
+                self.time = 16.2 * 60.0;
+                self.player.pos = vec2(42.0 * TS + 8.0, 21.0 * TS + 10.0);
+            }
+            "cottage" => {
+                self.time = 11.0 * 60.0;
+                self.player.pos = vec2(86.0 * TS + 8.0, 26.0 * TS + 10.0);
+            }
             "rain" => self.raining = true,
             "shop" => {
                 self.player.pos = vec2(81.0 * TS + 8.0, 33.0 * TS + 10.0);
@@ -1432,7 +1459,7 @@ impl Game {
             }
             _ => {}
         }
-        if what == "shop" || what == "town" || what == "forest" || what == "chop" {
+        if matches!(what, "shop" | "town" | "forest" | "chop" | "house" | "cottage") {
             self.cam = vec2(self.player.pos.x - self.vw / 2.0, self.player.pos.y - 14.0 - self.vh / 2.0);
         }
     }

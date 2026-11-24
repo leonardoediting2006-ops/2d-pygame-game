@@ -132,28 +132,57 @@ pub fn cherry(var: u32) -> Canvas {
 fn trunk(c: &mut Canvas, cx: i32, y0: i32, y1: i32, w: i32, var: u32) {
     let x0 = cx - w / 2;
     for y in y0..=y1 {
-        let spread = if y > y1 - 5 { (y - (y1 - 5)) / 2 + 1 } else { 0 };
-        for x in (x0 - spread)..(x0 + w + spread) {
-            let rel = (x - (x0 - spread)) as f32 / (w + spread * 2) as f32;
-            let mut col = if rel < 0.2 {
+        // the trunk flares out towards the roots
+        let k = (y - (y1 - 7)).max(0);
+        let spread = (k * k) / 9;
+        let l = x0 - spread;
+        let r = x0 + w + spread;
+        for x in l..r {
+            let rel = (x - l) as f32 / (r - l) as f32;
+            let mut col = if rel < 0.16 {
+                WOOD[4]
+            } else if rel < 0.32 {
                 WOOD[3]
-            } else if rel < 0.55 {
+            } else if rel < 0.62 {
                 WOOD[2]
-            } else if rel < 0.85 {
+            } else if rel < 0.86 {
                 WOOD[1]
             } else {
                 WOOD[0]
             };
-            if hashf(x, y / 3, var + 3) < 0.18 {
-                col = shade(col, 0.78);
+            // vertical bark fissures
+            let f = hash(x, (y + (x * 7) % 5) / 4, var + 3) % 100;
+            if f < 16 && rel > 0.12 {
+                col = shade(col, 0.72);
+            } else if f > 94 && rel < 0.6 {
+                col = WOOD[4];
             }
             c.set(x, y, col);
         }
     }
-    // radici
-    c.ellipse(cx as f32 - 5.5, y1 as f32 - 1.0, 3.5, 2.0, WOOD[2]);
-    c.ellipse(cx as f32 + 5.5, y1 as f32 - 1.0, 3.5, 2.0, WOOD[1]);
-    c.hline(cx - 8, cx - 4, y1 - 2, WOOD[3]);
+    // roots creeping into the ground
+    for (rx, ry, w2, h2, col) in [
+        (cx as f32 - 7.0, y1 as f32 - 1.0, 5.0, 2.2, WOOD[2]),
+        (cx as f32 + 7.5, y1 as f32 - 1.0, 4.5, 2.0, WOOD[1]),
+        (cx as f32 - 1.5, y1 as f32 + 0.5, 3.0, 1.6, WOOD[2]),
+        (cx as f32 + 3.5, y1 as f32 + 0.2, 2.5, 1.4, WOOD[1]),
+    ] {
+        c.ellipse(rx, ry, w2, h2, col);
+        c.hline((rx - w2 + 1.5) as i32, (rx + w2 - 2.0) as i32, (ry - h2 + 0.5) as i32, WOOD[3]);
+    }
+    // moss on the roots and the base of the trunk
+    for y in (y1 - 7)..=(y1 + 1) {
+        for x in (cx - 14)..(cx + 14) {
+            if !c.solid(x, y) {
+                continue;
+            }
+            let n = vnoise(x as f32 * 0.5, y as f32 * 0.5, var + 61);
+            let lower = (y - (y1 - 7)) as f32 / 8.0;
+            if n + lower * 0.25 > 0.78 && !c.solid(x, y - 1) || n > 0.8 {
+                c.set(x, y, if hashf(x, y, var) < 0.5 { G[2] } else { G[1] });
+            }
+        }
+    }
 }
 
 fn leaf_marks(c: &mut Canvas, pal: &[Rgba; 5], seed: u32) {
@@ -347,287 +376,6 @@ pub fn bush(var: u32) -> Canvas {
 }
 
 // ------------------------------------------------------------------ edifici
-
-pub struct HouseSpec {
-    pub w: i32,
-    pub roof: [Rgba; 5],
-    pub plaster: bool,
-    pub door_cx: i32,
-}
-
-pub fn house(s: &HouseSpec) -> Canvas {
-    let w = s.w;
-    let mut c = Canvas::new(w, 96);
-    let wx0 = 6;
-    let wx1 = w - 7;
-    // portico
-    for y in 80..95 {
-        for x in 3..w - 3 {
-            let mut col = if (y - 80) % 3 == 0 { WOOD[2] } else { WOOD[3] };
-            if (x + (y / 3) * 7) % 13 == 0 {
-                col = WOOD[2];
-            }
-            c.set(x, y, col);
-        }
-    }
-    c.hline(3, w - 4, 93, WOOD[1]);
-    c.hline(3, w - 4, 94, WOOD[0]);
-    // gradini
-    for y in 87..96 {
-        for x in s.door_cx - 9..s.door_cx + 9 {
-            let col = if (y - 87) % 3 == 0 { WOOD[4] } else if (y - 87) % 3 == 1 { WOOD[3] } else { WOOD[1] };
-            c.set(x, y, col);
-        }
-    }
-    // muri
-    let plaster = [hex(0xc9b48e), hex(0xe2d0aa), hex(0xf2e4c4)];
-    for y in 40..80 {
-        for x in wx0..=wx1 {
-            let col = if s.plaster {
-                let beam = (x - wx0) % 18 == 0 || y == 58;
-                if beam {
-                    WOOD[1]
-                } else if hashf(x, y, 31) < 0.06 {
-                    plaster[0]
-                } else {
-                    plaster[1]
-                }
-            } else {
-                let plank = (x - wx0) / 5;
-                let edge = (x - wx0) % 5 == 4;
-                let v = hashf(plank, 0, 77);
-                if edge {
-                    WOOD[1]
-                } else if v < 0.3 {
-                    WOOD[2]
-                } else if v < 0.85 {
-                    WOOD[3]
-                } else {
-                    WOOD[4]
-                }
-            };
-            c.set(x, y, col);
-        }
-    }
-    // ombra sotto la gronda
-    for x in wx0..=wx1 {
-        c.set(x, 40, WOOD[0]);
-        c.set(x, 41, shade(c.get(x, 41), 0.6));
-        c.set(x, 42, shade(c.get(x, 42), 0.75));
-    }
-    // fondamenta in pietra
-    for y in 75..80 {
-        for x in wx0..=wx1 {
-            let brick = ((x + if y % 4 < 2 { 0 } else { 3 }) % 6 == 0) || y == 75;
-            c.set(x, y, if brick { STONE[1] } else if hashf(x / 6, y, 3) < 0.5 { STONE[2] } else { STONE[3] });
-        }
-    }
-    // pilastri angolari
-    for y in 42..80 {
-        for x in [wx0, wx0 + 1, wx1 - 1, wx1] {
-            c.set(x, y, if x == wx0 || x == wx1 - 1 { WOOD[1] } else { WOOD[0] });
-        }
-    }
-    // porta
-    let dx0 = s.door_cx - 6;
-    for y in 53..80 {
-        for x in dx0..dx0 + 12 {
-            let col = if x == dx0 || x == dx0 + 11 || y == 53 {
-                WOOD[0]
-            } else if (x - dx0) % 4 == 0 {
-                WOOD[1]
-            } else {
-                WOOD[2]
-            };
-            c.set(x, y, col);
-        }
-    }
-    c.rect(dx0 + 3, 57, 6, 4, WAT[3]);
-    c.set(dx0 + 3, 57, WAT[5]);
-    c.set(dx0 + 4, 57, WAT[4]);
-    c.set(dx0 + 9, 68, hex(0xf2c440));
-    c.set(dx0 + 9, 69, hex(0xb08420));
-    // finestre
-    let mut wins = vec![(14, 50, 16, 14)];
-    if w > 80 {
-        wins.push((w - 26, 50, 13, 13));
-    } else {
-        wins.push((w - 24, 50, 12, 12));
-    }
-    for (i, &(x, y, ww, hh)) in wins.iter().enumerate() {
-        let frame = hex(0xf1e2c2);
-        c.rect(x - 1, y - 1, ww + 2, hh + 2, WOOD[0]);
-        c.rect(x, y, ww, hh, frame);
-        c.rect(x + 1, y + 1, ww - 2, hh - 2, WAT[3]);
-        for k in 0..ww - 2 {
-            // riflesso diagonale
-            let yy = y + 1 + k;
-            if yy < y + hh - 1 {
-                c.set(x + ww - 2 - k, yy, WAT[2]);
-            }
-        }
-        c.set(x + 2, y + 2, WAT[5]);
-        c.set(x + 3, y + 2, WAT[4]);
-        c.set(x + 2, y + 3, WAT[4]);
-        c.vline(x + ww / 2, y + 1, y + hh - 2, frame);
-        c.hline(x + 1, x + ww - 2, y + hh / 2, frame);
-        // persiane verdi per la prima finestra
-        if i == 0 {
-            let sh = [hex(0x2e6a3a), hex(0x438a4a), hex(0x5ca85a)];
-            for yy in y - 1..y + hh + 1 {
-                for (k, xx) in [x - 5, x - 4, x - 3, x - 2].into_iter().enumerate() {
-                    c.set(xx, yy, if yy % 2 == 0 { sh[1] } else { sh[k.min(2) % 3] });
-                }
-                for (k, xx) in [x + ww + 1, x + ww + 2, x + ww + 3, x + ww + 4].into_iter().enumerate() {
-                    c.set(xx, yy, if yy % 2 == 0 { sh[1] } else { sh[(2 - k.min(2)) % 3] });
-                }
-            }
-            // fioriera
-            c.rect(x - 2, y + hh + 1, ww + 4, 4, WOOD[1]);
-            c.hline(x - 2, x + ww + 1, y + hh + 1, WOOD[3]);
-            let mut r = Rng::new(5);
-            for k in 0..ww + 3 {
-                let fc = [hex(0xf06a8a), hex(0xfff0f4), hex(0xf4b040), hex(0xb070e0)][r.range(0, 4) as usize];
-                c.set(x - 1 + k, y + hh, if k % 2 == 0 { fc } else { G[3] });
-                if k % 3 == 1 {
-                    c.set(x - 1 + k, y + hh - 1, fc);
-                }
-            }
-        }
-    }
-    // tetto
-    for y in 4..45 {
-        let inset = ((44 - y) as f32 * 0.14) as i32;
-        for x in inset..w - inset {
-            let row = (y - 4) / 5;
-            let in_row = (y - 4) % 5;
-            let sx = (x + row * 3) % 8;
-            let mut col = if in_row == 4 {
-                s.roof[1]
-            } else if sx == 0 {
-                s.roof[1]
-            } else if in_row == 0 {
-                s.roof[3]
-            } else {
-                s.roof[2]
-            };
-            if in_row < 3 && sx != 0 && hashf((x + row * 3) / 8, row, 55) < 0.2 {
-                col = s.roof[3];
-            }
-            // luce sul lato sinistro, ombra sul destro
-            let rel = x as f32 / w as f32;
-            if rel > 0.82 && in_row != 0 {
-                col = shade(col, 0.88);
-            }
-            if y <= 6 {
-                col = if y == 4 { s.roof[1] } else { s.roof[4] };
-            }
-            c.set(x, y, col);
-        }
-    }
-    for x in 0..w {
-        c.set(x, 43, s.roof[0]);
-        c.set(x, 44, s.roof[0]);
-        if x % 8 == 3 {
-            c.set(x, 42, s.roof[1]);
-        }
-    }
-    // abbaino
-    let ax = w / 2 - 6;
-    c.rect(ax - 1, 15, 14, 13, WOOD[0]);
-    c.rect(ax, 16, 12, 11, if s.plaster { plaster[2] } else { WOOD[3] });
-    c.rect(ax + 3, 18, 6, 6, WAT[3]);
-    c.set(ax + 3, 18, WAT[5]);
-    c.vline(ax + 6, 18, 23, hex(0xf1e2c2));
-    c.hline(ax + 3, ax + 8, 21, hex(0xf1e2c2));
-    for k in 0..9 {
-        c.hline(ax - 2 + k / 2, ax + 13 - k / 2, 14 - k / 2 + 1, s.roof[if k % 2 == 0 { 3 } else { 2 }]);
-    }
-    // camino
-    if w > 80 {
-        for y in 0..16 {
-            for x in w - 26..w - 16 {
-                let brick = (x + if y % 4 < 2 { 0 } else { 2 }) % 5 == 0 || y % 2 == 0 && y % 4 == 0;
-                c.set(x, y, if brick { STONE[1] } else if x < w - 22 { STONE[3] } else { STONE[2] });
-            }
-        }
-        c.rect(w - 27, 0, 12, 2, STONE[0]);
-    }
-    c.outline();
-    c
-}
-
-pub fn bin() -> Canvas {
-    let mut c = Canvas::new(32, 32);
-    // corpo
-    for y in 14..30 {
-        for x in 2..30 {
-            let col = if (y - 14) % 5 == 4 { WOOD[1] } else if x < 6 { WOOD[3] } else if x > 25 { WOOD[1] } else { WOOD[2] };
-            c.set(x, y, col);
-        }
-    }
-    // coperchio
-    for y in 7..15 {
-        for x in 1..31 {
-            let col = if y < 9 { WOOD[4] } else if y == 14 { WOOD[0] } else if (x - 1) % 6 == 5 { WOOD[2] } else { WOOD[3] };
-            c.set(x, y, col);
-        }
-    }
-    // bordi metallici
-    for (x0, x1) in [(2, 4), (28, 30)] {
-        for y in 7..30 {
-            for x in x0..x1 {
-                c.set(x, y, if x == x0 { STONE[3] } else { STONE[1] });
-            }
-        }
-    }
-    c.rect(13, 16, 6, 4, STONE[2]);
-    c.hline(13, 18, 16, STONE[4]);
-    c.outline();
-    c
-}
-
-pub fn well() -> Canvas {
-    let mut c = Canvas::new(32, 48);
-    // corpo in pietra
-    for y in 30..45 {
-        for x in 2..30 {
-            let off = if (y / 4) % 2 == 0 { 0 } else { 3 };
-            let mortar = (x + off) % 6 == 0 || y % 4 == 0;
-            let rel = (x - 2) as f32 / 28.0;
-            let base = if rel < 0.25 { STONE[3] } else if rel < 0.75 { STONE[2] } else { STONE[1] };
-            c.set(x, y, if mortar { STONE[0] } else { base });
-        }
-    }
-    c.ellipse(16.0, 44.0, 14.0, 3.0, STONE[1]);
-    c.ellipse(16.0, 30.0, 14.0, 5.0, STONE[3]);
-    c.ellipse(16.0, 30.0, 11.0, 3.4, WAT[0]);
-    c.ellipse(16.0, 31.0, 9.0, 2.2, WAT[1]);
-    c.set(13, 30, WAT[4]);
-    // pali
-    for y in 8..31 {
-        for x in [4, 5, 26, 27] {
-            c.set(x, y, if x % 2 == 0 { WOOD[3] } else { WOOD[1] });
-        }
-    }
-    // trave + corda + secchio
-    c.hline(4, 27, 12, WOOD[1]);
-    c.hline(4, 27, 13, WOOD[2]);
-    c.vline(16, 14, 20, hex(0xd8c090));
-    c.rect(13, 21, 7, 5, STONE[2]);
-    c.hline(13, 19, 21, STONE[4]);
-    c.hline(13, 19, 25, STONE[0]);
-    // tettoia
-    for y in 0..11 {
-        let inset = (10 - y) / 2;
-        for x in inset..32 - inset {
-            let col = if y == 10 { WOOD[0] } else if (x + y) % 5 == 0 { WOOD[1] } else if y < 3 { WOOD[3] } else { WOOD[2] };
-            c.set(x, y, col);
-        }
-    }
-    c.outline();
-    c
-}
 
 pub fn stall() -> Canvas {
     let mut c = Canvas::new(48, 64);
@@ -1310,20 +1058,91 @@ pub fn butterfly(frame: u8) -> Canvas {
     c
 }
 
-pub fn shadow(w: i32, h: i32) -> Canvas {
+/// Soft, dithered shadow: darker in the middle, fading out in pixel steps.
+pub fn shadow(w: i32, h: i32, strength: f32) -> Canvas {
     let mut c = Canvas::new(w, h);
     let cx = w as f32 / 2.0;
     let cy = h as f32 / 2.0;
+    let bayer = [[0.0, 0.5], [0.75, 0.25]];
     for y in 0..h {
         for x in 0..w {
             let dx = (x as f32 + 0.5 - cx) / cx;
             let dy = (y as f32 + 0.5 - cy) / cy;
-            let d = dx * dx + dy * dy;
-            if d <= 1.0 {
-                let a = if d < 0.55 { 80 } else { 50 };
-                c.set(x, y, [24, 36, 16, a]);
+            let d = (dx * dx + dy * dy).sqrt();
+            if d >= 1.0 {
+                continue;
+            }
+            let v = (1.0 - d).powf(0.7) * 3.0;
+            let lvl = v.floor() + if v.fract() > bayer[(y % 2) as usize][(x % 2) as usize] { 1.0 } else { 0.0 };
+            if lvl <= 0.0 {
+                continue;
+            }
+            let a = (lvl.min(3.0) / 3.0 * 120.0 * strength) as u8;
+            c.set(x, y, [22, 34, 14, a]);
+        }
+    }
+    c
+}
+
+/// Grass tufts that sit in front of an object's base so it grows "out of" the ground.
+pub fn tuft(var: u32) -> Canvas {
+    let mut c = Canvas::new(16, 10);
+    let mut r = Rng::new(var as u64 * 31 + 7);
+    let clumps = r.range(2, 4);
+    for k in 0..clumps {
+        let bx = 2 + k * 5 + r.range(-1, 2);
+        let n = r.range(3, 6);
+        for i in 0..n {
+            let x = bx + i - n / 2;
+            let hgt = r.range(2, 7);
+            let lean = if i < n / 2 { -1 } else if i > n / 2 { 1 } else { 0 };
+            for t in 0..hgt {
+                let xx = x + if t > hgt / 2 { lean } else { 0 };
+                let yy = 9 - t;
+                let col = if t == 0 {
+                    G[0]
+                } else if t == hgt - 1 {
+                    if i % 2 == 0 { G[4] } else { G[3] }
+                } else if t < 2 {
+                    G[1]
+                } else {
+                    G[2]
+                };
+                c.set(xx, yy, col);
             }
         }
+        if var % 3 == 0 && k == 1 {
+            let fc = [hex(0xfff6f0), hex(0xffe070), hex(0xf4a6c8)][(var / 3 % 3) as usize];
+            c.set(bx, 2, fc);
+            c.set(bx - 1, 3, fc);
+            c.set(bx + 1, 3, fc);
+            c.set(bx, 3, hex(0xf8c838));
+        }
+    }
+    c
+}
+
+/// Pebbles, a dry sprig and a darker patch: how an object meets a dirt path.
+pub fn pebbles(var: u32) -> Canvas {
+    let mut c = Canvas::new(16, 8);
+    let mut r = Rng::new(var as u64 * 17 + 3);
+    for _ in 0..r.range(2, 4) {
+        let x = r.range(1, 13);
+        let y = r.range(3, 6);
+        let w = r.range(2, 4);
+        for xx in x..x + w {
+            c.set(xx, y, hex(0xb08654));
+            c.set(xx, y + 1, D[0]);
+        }
+        c.set(x, y - 1, D[4]);
+        c.set(x + w - 1, y, hex(0x9a7044));
+    }
+    if var % 2 == 0 {
+        let x = r.range(3, 12);
+        for t in 0..4 {
+            c.set(x + t / 2, 6 - t, if t == 3 { hex(0xb8a050) } else { hex(0x8a7a3a) });
+        }
+        c.set(x + 2, 4, hex(0x8a7a3a));
     }
     c
 }
@@ -1474,5 +1293,43 @@ pub fn planter(var: u32) -> Canvas {
         }
     }
     c.outline();
+    c
+}
+
+/// Big soft cloud silhouette (its shadow drifts over the land).
+pub fn cloud(var: u32) -> Canvas {
+    let (w, h) = (176, 96);
+    let mut c = Canvas::new(w, h);
+    let bayer = [[0.0, 0.5], [0.75, 0.25]];
+    for y in 0..h {
+        for x in 0..w {
+            let dx = (x as f32 + 0.5 - w as f32 / 2.0) / (w as f32 / 2.0);
+            let dy = (y as f32 + 0.5 - h as f32 / 2.0) / (h as f32 / 2.0);
+            let n = fbm(x as f32 * 0.025, y as f32 * 0.04, 300 + var);
+            let v = (1.0 - (dx * dx + dy * dy)) * 1.4 + (n - 0.5) * 1.6;
+            if v <= 0.0 {
+                continue;
+            }
+            let lvl = (v * 3.0).min(3.0);
+            let q = lvl.floor() + if lvl.fract() > bayer[(y % 2) as usize][(x % 2) as usize] { 1.0 } else { 0.0 };
+            if q > 0.0 {
+                c.set(x, y, [255, 255, 255, (q.min(3.0) / 3.0 * 255.0) as u8]);
+            }
+        }
+    }
+    c
+}
+
+/// Soft vertical band used for the sun beams.
+pub fn beam() -> Canvas {
+    let mut c = Canvas::new(32, 4);
+    for x in 0..32 {
+        let t = (x as f32 + 0.5) / 32.0;
+        let a = (t * std::f32::consts::PI).sin().powf(1.5);
+        let q = (a * 5.0).round() / 5.0;
+        for y in 0..4 {
+            c.set(x, y, [255, 255, 255, (q * 255.0) as u8]);
+        }
+    }
     c
 }

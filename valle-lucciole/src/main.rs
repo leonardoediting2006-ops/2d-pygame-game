@@ -2,6 +2,7 @@
 //! Tutta la grafica è generata via codice (vedi sprites.rs e world.rs::bake).
 
 mod art;
+mod buildings;
 mod canvas;
 mod font;
 mod game;

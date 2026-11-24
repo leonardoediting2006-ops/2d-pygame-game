@@ -2,6 +2,7 @@
 
 use crate::canvas::*;
 use crate::items::*;
+use crate::buildings::*;
 use crate::sprites::*;
 use crate::util::*;
 use macroquad::prelude::*;
@@ -25,10 +26,16 @@ pub fn all_canvases() -> Vec<(String, Canvas)> {
     push("ramo_1".into(), stick(1));
     push("cespuglio_0".into(), bush(0));
     push("cespuglio_1".into(), bush(1));
-    push("casa_fattoria".into(), house(&farmhouse_spec()));
-    push("casa_mercante".into(), house(&cottage_spec()));
-    push("cassa_spedizioni".into(), bin());
+    push("casa_fattoria".into(), farmhouse().0);
+    push("casa_mercante".into(), cottage().0);
+    push("cassa_spedizioni".into(), chest());
     push("pozzo".into(), well());
+    for i in 0..8 {
+        push(format!("ciuffo_erba_{i}"), tuft(i));
+    }
+    for i in 0..4 {
+        push(format!("sassolini_{i}"), pebbles(i));
+    }
     push("bancarella".into(), stall());
     push("staccionata_palo".into(), fence_post());
     push("staccionata_h".into(), fence_rail_h());
@@ -80,13 +87,6 @@ pub fn icon_items() -> Vec<Item> {
         v.push(Item::Produce(k));
     }
     v
-}
-
-pub fn farmhouse_spec() -> HouseSpec {
-    HouseSpec { w: 96, roof: ROOF, plaster: false, door_cx: 56 }
-}
-pub fn cottage_spec() -> HouseSpec {
-    HouseSpec { w: 80, roof: ROOFB, plaster: true, door_cx: 40 }
 }
 
 /// Foglio riassuntivo con tutti gli sprite, ingrandito, su sfondo d'erba.
@@ -213,6 +213,14 @@ pub struct Art {
     pub shadow_s: Texture2D,
     pub shadow_m: Texture2D,
     pub shadow_l: Texture2D,
+    pub shadow_xl: Texture2D,
+    pub contact: Texture2D,
+    pub tufts: Vec<Texture2D>,
+    pub clouds: Vec<Texture2D>,
+    pub beam: Texture2D,
+    pub pebbles: Vec<Texture2D>,
+    pub house_info: HouseInfo,
+    pub cottage_info: HouseInfo,
     pub glow: Texture2D,
     pub coin: Texture2D,
     pub sun: Texture2D,
@@ -224,6 +232,8 @@ pub struct Art {
 impl Art {
     pub fn new() -> Self {
         let t = |c: Canvas| c.tex();
+        let fh = farmhouse();
+        let ct = cottage();
         let mut white = Canvas::new(1, 1);
         white.set(0, 0, [255, 255, 255, 255]);
         Art {
@@ -236,9 +246,9 @@ impl Art {
             weed: (0..3).map(|i| t(weed(i))).collect(),
             stick: (0..2).map(|i| t(stick(i))).collect(),
             bush: (0..2).map(|i| t(bush(i))).collect(),
-            house: t(house(&farmhouse_spec())),
-            cottage: t(house(&cottage_spec())),
-            bin: t(bin()),
+            house: t(fh.0),
+            cottage: t(ct.0),
+            bin: t(chest()),
             well: t(well()),
             stall: t(stall()),
             fence_post: t(fence_post()),
@@ -259,9 +269,17 @@ impl Art {
             chicken: (0..3).map(|f| t(chicken(f))).collect(),
             chicken_r: (0..3).map(|f| t(chicken(f).flipped_h())).collect(),
             butterfly: (0..2).map(|f| t(butterfly(f))).collect(),
-            shadow_s: t(shadow(12, 5)),
-            shadow_m: t(shadow(18, 6)),
-            shadow_l: t(shadow(30, 9)),
+            shadow_s: t(shadow(12, 5, 0.9)),
+            shadow_m: t(shadow(20, 7, 0.9)),
+            shadow_l: t(shadow(34, 11, 0.85)),
+            shadow_xl: t(shadow(52, 16, 0.6)),
+            contact: t(shadow(16, 5, 1.3)),
+            tufts: (0..8).map(|i| t(tuft(i))).collect(),
+            clouds: (0..2).map(|i| t(cloud(i))).collect(),
+            beam: t(beam()),
+            pebbles: (0..4).map(|i| t(pebbles(i))).collect(),
+            house_info: fh.1,
+            cottage_info: ct.1,
             glow: t(glow()),
             coin: t(coin()),
             sun: t(sun_icon()),

@@ -48,11 +48,17 @@ Il primo avvio compila tutto (circa un minuto). Poi parte in pochi secondi.
 
 | File | Contenuto |
 |---|---|
-| `src/sprites.rs` | Tutti gli sprite dipinti pixel per pixel (luce dall'alto a sinistra, contorni selettivi) |
+| `src/sprites.rs` | Sprite dipinti pixel per pixel (luce dall'alto a sinistra, contorni selettivi) |
+| `src/buildings.rs` | Case, pozzo e cassa costruiti a pezzi: tetti, assi, pietre, finestre, porte, dettagli |
 | `src/world.rs` | Mappa, oggetti e "cottura" del terreno in una texture con bordi organici |
 | `src/render.rs` | Rendering 2.5D: ordinamento per profondità, ombre, trasparenza dietro alberi e tetti, luci notturne |
 | `src/game.rs` | Logica: attrezzi, colture, giorni, negozio, salvataggio |
 | `src/ui.rs`, `src/font.rs` | Interfaccia e font bitmap 5x7 |
+
+Ogni oggetto proietta un'ombra che segue il sole (lunga a ovest al mattino, corta a mezzogiorno, lunga a est la sera),
+le nuvole fanno ombra mentre passano e la luce cambia colore durante il giorno (alba rosata, mezzogiorno neutro,
+ora dorata, notte blu). La base di alberi, case, pozzo e cassa si fonde con il terreno grazie a ciuffi d'erba
+o sassolini scelti in base al suolo su cui poggiano.
 
 Il mondo viene disegnato a bassa risoluzione (circa 480x270) e ingrandito a scala intera, così i pixel restano nitidi.
 Di notte una mappa di luce viene moltiplicata sulla scena (finestre, lampioni, lucciole).
